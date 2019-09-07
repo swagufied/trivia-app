@@ -64,7 +64,7 @@ class SocketTicketManager(models.Manager):
 
 class SocketTicket(models.Model):
 
-	ticket = models.UUIDField(default=uuid.uuid4, editable=False)
+	ticket = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
 	user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='tickets', on_delete=models.CASCADE)
 	date_issued = models.DateTimeField(auto_now_add=True)
 

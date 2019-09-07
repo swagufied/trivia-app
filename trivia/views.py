@@ -13,6 +13,8 @@ from rest_framework import viewsets
 
 from rest_framework import serializers
 
+
+from .models import SocketTicket
 # class UserSerializer(serializers.HyperlinkedModelSerializer):
 #     class Meta:
 #         model = User
@@ -51,7 +53,7 @@ class SocketTicketView(APIView):
         socket_ticket = SocketTicket.objects.create_ticket(request.user)
 
         payload = {
-            'ticket': socket_ticket.ticket
+            'ticket': str(socket_ticket.ticket)
         }        
 
         return Response(payload)
