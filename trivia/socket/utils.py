@@ -2,6 +2,7 @@ from channels.db import database_sync_to_async
 from ..models import Room
 from .exceptions import ClientError
 from django.contrib.auth.models import User
+from .constants import TriviaConsumerConstants as constants
 
 
 
@@ -65,25 +66,26 @@ def get_args_from_incoming_msg(msg, user_id=None):
 
 		args = [room, data.get('ticket')]
 
-	user = get_user_or_error(user_id)
-	if not user:
-		raise ClientError('INVALID_USER_ID')
+	else: 
+		user = get_user_or_error(user_id)
+		if not user:
+			raise ClientError('INVALID_USER_ID')
 
-	if command in [constants.JOIN_ROOM, constants.LEAVE_ROOM]:
+		if command in [constants.JOIN_ROOM, constants.LEAVE_ROOM]:
 
-		args = [room, user]
+			args = [room, user]
 
-	if command == constants.UPDATE_CHAT:
-		
-		args = [room, user]
-		kwargs['msg'] = data.get('message')
+		elif command == constants.UPDATE_CHAT:
+			
+			args = [room, user]
+			kwargs['msg'] = data.get('message')
 
-	elif command == constants.UPDATE_GAME:
+		elif command == constants.UPDATE_GAME:
 
-		args = [room, user, data]
-		
-	else:
-		raise ClientError('INVALID_COMMAND')
+			args = [room, user, data]
+			
+		else:
+			raise ClientError('INVALID_COMMAND')
 	
 
 	return command, args, kwargs

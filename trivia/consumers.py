@@ -4,12 +4,15 @@ from channels.generic.websocket import JsonWebsocketConsumer
 import json
 
 
-from .socket.payload import join_room, join_room_result, leave_room, chat_update, game_update
 from .socket.exceptions import ClientError
 from .socket.utils import get_args_from_incoming_msg
 
+from .socket.chat_update import chat_update_payload
+from .socket.room_update import room_update_payload
+from .socket.current_user_update import current_user_update_payload
 
 from .socket.constants import TriviaConsumerConstants as constants
+from .socket.auth import get_user_from_socket_ticket
 
 """
 	all incoming messages must be in the following format
@@ -106,7 +109,10 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			self.data_[constants.USER_ID] = user.id
 			payload['is_successful'] = True
 			
-		socket_send(self.channel_layer, room.group_name, constants.VALIDATE_CONNECTION, payload)
+		self.send_json({
+			'type':constants.VALIDATE_CONNECTION, 
+			'data':payload
+			})
 
 
 	
@@ -116,13 +122,11 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 		# add user to room
 		room.users.add(user)
-
-
-		# add room
+		# add room to consumer instance
 		self.rooms.add(room.id)
 
-		# notify user that join was successful\
-		self.send_json(join_room_result(user, True))
+		# notify user that join was successful
+		self.send_json(current_user_update_payload(constants.JOIN_ROOM, True))
 
 		# make sure user can get messages from other room members
 		async_to_sync(self.channel_layer.group_add)(
@@ -131,16 +135,8 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		)
 
 		# notify everyone that new member joined - send out new member list
-
-		for payload in join_room(room, user):
-			print('sending payload', payload)
-			async_to_sync(self.channel_layer.group_send)(
-				room.group_name,
-				{
-					'type': 'room.join',
-					'payload': payload
-				}
-			)
+		socket_send(self.channel_layer, room.group_name, 'room.join', chat_update_payload(constants.JOIN_ROOM, user))
+		socket_send(self.channel_layer, room.group_name, 'room.join', room_update_payload(constants.JOIN_ROOM, room))
 
 
 
@@ -148,25 +144,19 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 		room.users.remove(user)
 
-		for payload in leave_room(room, user):
-			async_to_sync(self.channel_layer.group_send)(
-				room.group_name,
-				{
-					'type': 'room.leave',
-					'payload': payload
-				}
-			)
+		socket_send(self.channel_layer, room.group_name, 'room.leave', chat_update_payload(constants.LEAVE_ROOM, user))
+		socket_send(self.channel_layer, room.group_name, 'room.leave', room_update_payload(constants.LEAVE_ROOM, room))
+
+	
 		# Remove that we're in the room
-		self.rooms.discard(room_id)
+		self.rooms.discard(room.id)
 		# Remove them from the group so they no longer get room messages
 		self.channel_layer.group_discard(
 			room.group_name,
 			self.channel_name,
 		)
 		# Instruct their client to finish closing the room
-		self.send_json({
-			"LEAVE_ROOM": str(room.id),
-		})
+		self.send_json(current_user_update_payload(constants.LEAVE_ROOM, True))
 
 
 	def update_chat(self, room, user, msg=""):
@@ -174,14 +164,8 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		if not msg:
 			return
 
-		async_to_sync(self.channel_layer.group_send)(
-			room.group_name,
-			{
-				'type': 'msg.send',
-				'payload': chat_update('msg', user, data['message'])
-			}
-		)
-		print('update_chat finished')
+		socket_send(self.channel_layer, room.group_name, 'message.send', chat_update_payload(constants.UPDATE_CHAT, user, msg))
+
 
 	def update_game(self, room, user, data):
 
@@ -230,7 +214,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 	def room_leave(self, event):
 		self.send_json(event['payload'])
 
-	def msg_send(self, event):
+	def message_send(self, event):
 		print('message sent', event)
 		self.send_json(event['payload'])
 

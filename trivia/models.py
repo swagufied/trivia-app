@@ -4,8 +4,18 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 import uuid
 
+
+
+class RoomManager(models.Manager):
+	def create_room(self, **kwargs):
+
+		room = self.create(**kwargs)
+		return room
+
 # Create your models here.
 class Room(models.Model):
+
+	objects = RoomManager()
 
 	TRIVIA = 'TR'
 	# TODO: JEOPARDY = 'JE'
@@ -52,6 +62,7 @@ class Room(models.Model):
 	@property
 	def group_name(self):
 		return "room-{}".format(self.id)
+
 
 
 

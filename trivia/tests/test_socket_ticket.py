@@ -1,14 +1,16 @@
 from django.test import TestCase, RequestFactory, Client
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory, APIClient
-from .views import SocketTicketView
+from ..views import SocketTicketView
 from rest_framework.test import force_authenticate
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .models import SocketTicket
+from ..models import SocketTicket
+
+
 # test socket ticket issue
 class SocketTicketTestCase(TestCase):
 	def setUp(self):
@@ -47,6 +49,3 @@ class SocketTicketTestCase(TestCase):
 	# def test_ticket_invalidated_after_appropriate_time(self):
 	# 	pass 
 
-
-
-# test socket

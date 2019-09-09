@@ -64,10 +64,35 @@ def room_update(room, updates: dict):
 	return construct_payload(constants.UPDATE_ROOM, data)
 
 
+"""
+
+return - dict - the info that will for in the "data" key of outgoing message
+"""
+
+def generate_payload(type, *args, result=False, **kwargs):
+
+	commands = {
+		constants.VALIDATE_CONNECTION: self.validate_connection,
+		constants.JOIN_ROOM: join_room,
+		constants.LEAVE_ROOM: self.leave_room,
+		constants.UPDATE_CHAT: self.update_chat,
+		constants.UPDATE_GAME: self.update_game
+	}
+
+
+	return 
+
+	def generate(type, *args, **kwargs):
+
+		return payload
+
 '''
 COMPOSITE PAYLOADS
 '''
-def join_room_result(user, success: bool):
+def join_room_status(user, success: bool):
+
+
+	
 	data = {
 		'is_successful': success,
 		'user': {
