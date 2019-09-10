@@ -14,7 +14,7 @@ def room_update_payload(command, room, *args, **kwargs):
 	room = Room(room)
 
 	return {
-		'type': command,
+		'type': constants.UPDATE_ROOM,
 		'data': commands[command](room, *args, **kwargs)
 		}
 

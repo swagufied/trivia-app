@@ -13,6 +13,7 @@ from .socket.current_user_update import current_user_update_payload
 
 from .socket.constants import TriviaConsumerConstants as constants
 from .socket.auth import get_user_from_socket_ticket
+from .socket.utils import socket_send, get_user_or_error, get_room_or_error
 
 """
 	all incoming messages must be in the following format
@@ -24,7 +25,7 @@ from .socket.auth import get_user_from_socket_ticket
 
 	all return messages will be in following format:
 	{
-		type: str (will be the same as the incoming message),
+		type: str 
 		data: return
 	}
 
@@ -64,7 +65,6 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		setattr(self, constants.DATA, dict())
 
 
-
 	def receive_json(self, content):
 
 		commands = {
@@ -76,19 +76,25 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		}
 
 		print('incoming_json', content)
-		command, args, kwargs = get_args_from_incoming_msg(content, user_id = getattr(self, constants.DATA).get(constants.USER_ID))
+		
 
 		try:
+			command, args, kwargs = get_args_from_incoming_msg(content, user_id = getattr(self, constants.DATA).get(constants.USER_ID))
 			commands[command](*args, **kwargs)
 		except ClientError as e:
 			self.send_json({"error": e.code})
 
 	def disconnect(self, close_code):
-		for room_id in list(self.rooms):
-			try:
-				self.leave_room(room_id)
-			except ClientError as e:
-				print('error in disconnecting', e)
+		user = get_user_or_error(getattr(self, constants.DATA).get(constants.USER_ID))
+
+		if user:
+
+			for room_id in list(getattr(self, constants.ROOMS)):
+				room = get_room_or_error(room_id)
+				try:
+					self.leave_room(room, user)
+				except ClientError as e:
+					print('error in disconnecting', e)
 
 
 
@@ -106,7 +112,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		user = get_user_from_socket_ticket(ticket)
 
 		if user:
-			self.data_[constants.USER_ID] = user.id
+			getattr(self, constants.DATA)[constants.USER_ID] = user.id
 			payload['is_successful'] = True
 			
 		self.send_json({
@@ -115,15 +121,20 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			})
 
 
-	
+	def join_room(self, room, user, password):
 
-	def join_room(self, room, user):
+		if not user:
+			return
+
+		if room.password:
+			if room.password != password:
+				raise ClientError('INCORRECT_PASSWORD')
 
 
 		# add user to room
 		room.users.add(user)
 		# add room to consumer instance
-		self.rooms.add(room.id)
+		getattr(self, constants.ROOMS).add(room.id)
 
 		# notify user that join was successful
 		self.send_json(current_user_update_payload(constants.JOIN_ROOM, True))
@@ -142,27 +153,33 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 	def leave_room(self, room, user):
 
+		if not user:
+			return
+
 		room.users.remove(user)
-
-		socket_send(self.channel_layer, room.group_name, 'room.leave', chat_update_payload(constants.LEAVE_ROOM, user))
-		socket_send(self.channel_layer, room.group_name, 'room.leave', room_update_payload(constants.LEAVE_ROOM, room))
-
-	
 		# Remove that we're in the room
 		self.rooms.discard(room.id)
+
 		# Remove them from the group so they no longer get room messages
-		self.channel_layer.group_discard(
+		async_to_sync(self.channel_layer.group_discard)(
 			room.group_name,
 			self.channel_name,
 		)
+		socket_send(self.channel_layer, room.group_name, 'room.leave', chat_update_payload(constants.LEAVE_ROOM, user))
+		socket_send(self.channel_layer, room.group_name, 'room.leave', room_update_payload(constants.LEAVE_ROOM, room))
+		
+		
 		# Instruct their client to finish closing the room
 		self.send_json(current_user_update_payload(constants.LEAVE_ROOM, True))
 
 
 	def update_chat(self, room, user, msg=""):
 
-		if not msg:
+		if not msg or not user:
 			return
+
+		if user not in getattr(self, constants.ROOMS):
+			raise ClientError('NOT_A_ROOM_MEMBER')
 
 		socket_send(self.channel_layer, room.group_name, 'message.send', chat_update_payload(constants.UPDATE_CHAT, user, msg))
 

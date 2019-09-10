@@ -11,7 +11,7 @@ def chat_update_payload(command, *args, **kwargs):
 		# constants.UPDATE_GAME: self.update_game
 	}
 	return {
-		'type': command,
+		'type': constants.UPDATE_CHAT,
 		'data': commands[command](*args, **kwargs)
 		}
 

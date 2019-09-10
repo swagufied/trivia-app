@@ -9,8 +9,11 @@ import uuid
 class RoomManager(models.Manager):
 	def create_room(self, **kwargs):
 
+		# TODO:  validation
 		room = self.create(**kwargs)
 		return room
+
+	
 
 # Create your models here.
 class Room(models.Model):

@@ -3,6 +3,7 @@ from ..models import Room
 from .exceptions import ClientError
 from django.contrib.auth.models import User
 from .constants import TriviaConsumerConstants as constants
+from asgiref.sync import async_to_sync
 
 
 
@@ -57,7 +58,11 @@ def get_args_from_incoming_msg(msg, user_id=None):
 	elif not room_id:
 		raise ClientError('MSG_ROOM_ID_MISING')
 	elif not data:
-		raise ClientError('MSG_DATA_MISSING')
+
+		if command in [constants.LEAVE_ROOM]:
+			pass
+		else:
+			raise ClientError('MSG_DATA_MISSING')
 
 	room = get_room_or_error(room_id)
 
@@ -71,8 +76,9 @@ def get_args_from_incoming_msg(msg, user_id=None):
 		if not user:
 			raise ClientError('INVALID_USER_ID')
 
-		if command in [constants.JOIN_ROOM, constants.LEAVE_ROOM]:
-
+		elif command == constants.JOIN_ROOM:
+			args = [room, user, data.get('password')]
+		elif command == constants.LEAVE_ROOM:
 			args = [room, user]
 
 		elif command == constants.UPDATE_CHAT:
