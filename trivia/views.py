@@ -13,8 +13,9 @@ from rest_framework import viewsets
 
 from rest_framework import serializers
 
-
+from .socket.utils import get_room_or_error
 from .models import SocketTicket
+from rest_framework.decorators import api_view , permission_classes 
 # class UserSerializer(serializers.HyperlinkedModelSerializer):
 #     class Meta:
 #         model = User
@@ -61,28 +62,51 @@ class SocketTicketView(APIView):
 
 
 class RoomView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self, request, *args, **kwargs):
+        
+        room = get_room_or_error(kwargs['room_id'])
 
-    def get(self, request):
+        response_content = {
+            'name': room.name,
+            'has_password': room.password != "",
+            'is_playing': room.is_playing,
+            'is_member': False
+        }
+
+        if request.user in room.users.all():
+            response_content['is_member'] = True
+
+        
+        
+        return Response(response_content)
 
 
-        # if no room id was given
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def validate_room_password(request):
+
+    # print(request.data, dir(request))
+
+    room = get_room_or_error(request.data.get('room_id'))
+
+    response_content = {
+        'is_successful': False
+    }
+
+    if request.data.get('password') == room.password:
+        response_content['is_successful'] = True
+    else:
+        response_content['error'] = 'Invalid password.'
+
+    return Response(response_content)
 
 
-        # if a room id was given
-        pass
 
 # GET - return list of all rooms
 def rooms():
     return HttpResponse("Hello, world. You're at the trivia index.")
-
-# GET - return details of a room
-# auth required
-def room(request, room_id):
-	print(room_id)
-
-	room_row = Room.objects.get(pk=room_id)
-
-	return HttpResponse("Hello, world. You're at the room index.")
 
 
 
@@ -95,11 +119,14 @@ class TokenView(APIView):
     def get(self, request):
 
         print(request.user)
-        print(dir(request))
+        # print(dir(request))
         content = {
             'verified': True,
-            'username': request.user.username
+            'user': {
+                'username': request.user.username
+                }
             }
+            
         return Response(content)
 
 

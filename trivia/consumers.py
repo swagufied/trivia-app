@@ -2,7 +2,7 @@
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer
 import json
-
+from functools import partial
 
 from .socket.exceptions import ClientError
 from .socket.utils import get_args_from_incoming_msg
@@ -13,7 +13,8 @@ from .socket.current_user_update import current_user_update_payload
 
 from .socket.constants import TriviaConsumerConstants as constants
 from .socket.auth import get_user_from_socket_ticket
-from .socket.utils import socket_send, get_user_or_error, get_room_or_error
+from .socket.utils import socket_group_send, get_user_or_error, get_room_or_error, socket_group_add, socket_self_send
+from .socket.game_update import game_update_payload 
 
 """
 	all incoming messages must be in the following format
@@ -59,6 +60,7 @@ from .socket.utils import socket_send, get_user_or_error, get_room_or_error
 class TriviaConsumer(JsonWebsocketConsumer):
 
 	def connect(self):
+		print('connected')
 		self.accept()
 
 		setattr(self, constants.ROOMS, set())
@@ -80,6 +82,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 		try:
 			command, args, kwargs = get_args_from_incoming_msg(content, user_id = getattr(self, constants.DATA).get(constants.USER_ID))
+
 			commands[command](*args, **kwargs)
 		except ClientError as e:
 			self.send_json({"error": e.code})
@@ -102,7 +105,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 	COMMAND HANDLERS
 	"""
 
-	def validate_connection(self, room, ticket):
+	def validate_connection(self, ticket):
 
 		if not ticket:
 			raise ClientError('TICKET_MISSING')
@@ -146,8 +149,19 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		)
 
 		# notify everyone that new member joined - send out new member list
-		socket_send(self.channel_layer, room.group_name, 'room.join', chat_update_payload(constants.JOIN_ROOM, user))
-		socket_send(self.channel_layer, room.group_name, 'room.join', room_update_payload(constants.JOIN_ROOM, room))
+		socket_group_send(self.channel_layer, 'room.join',room.group_name, chat_update_payload(constants.JOIN_ROOM, user))
+		# socket_group_send(self.channel_layer, room.group_name, 'room.join', room_update_payload(constants.JOIN_ROOM, room))
+
+
+
+		partial_group_send = partial(socket_group_send, self.channel_layer, 'game.update' )
+		partial_group_add = partial(socket_group_add, self.channel_layer, self.channel_name)
+		partial_self_send = partial(socket_self_send, self.send_json, constants.UPDATE_GAME)
+
+		game_update_payload(room.game_type, partial_group_add, partial_self_send, partial_group_send,  {'action': constants.JOIN_ROOM, 'user': user, 'room': room})
+
+		# socket_group_send(self.channel_layer, group_name, payload_type, payload)
+
 
 
 
@@ -165,8 +179,8 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			room.group_name,
 			self.channel_name,
 		)
-		socket_send(self.channel_layer, room.group_name, 'room.leave', chat_update_payload(constants.LEAVE_ROOM, user))
-		socket_send(self.channel_layer, room.group_name, 'room.leave', room_update_payload(constants.LEAVE_ROOM, room))
+		socket_group_send(self.channel_layer,'room.leave',  room.group_name, chat_update_payload(constants.LEAVE_ROOM, user))
+		socket_group_send(self.channel_layer,'room.leave',  room.group_name, room_update_payload(constants.LEAVE_ROOM, room))
 		
 		
 		# Instruct their client to finish closing the room
@@ -178,29 +192,21 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		if not msg or not user:
 			return
 
-		if user not in getattr(self, constants.ROOMS):
+		if room.id not in getattr(self, constants.ROOMS):
 			raise ClientError('NOT_A_ROOM_MEMBER')
 
-		socket_send(self.channel_layer, room.group_name, 'message.send', chat_update_payload(constants.UPDATE_CHAT, user, msg))
+		socket_group_send(self.channel_layer,'message.send',  room.group_name, chat_update_payload(constants.UPDATE_CHAT, user, msg))
 
 
 	def update_game(self, room, user, data):
 
+		if not user:
+			return
+
 		# make sure the room id provided is one the user is in
-		if not room.id in self.rooms:
-			self.send_json({
-				"LEAVE_ROOM": str(room.id),
-			})
+		if not room.id in getattr(self, constants.ROOMS):
+			raise ClientError('NOT NOT_A_ROOM_MEMBER')
 
-
-		for payload in game_update(self, user, room, data):
-			async_to_sync(self.channel_layer.group_send)(
-				room.group_name,
-				{
-					'type': 'game.update',
-					'payload': payload
-				}
-			)
 
 
 	"""
@@ -236,4 +242,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		self.send_json(event['payload'])
 
 	def game_update(self, event):
-		self.send_json(event['payload'])
+		self.send_json({
+			'type': constants.UPDATE_GAME,
+			'data':event['payload']
+			})

@@ -13,7 +13,7 @@ class RoomManager(models.Manager):
 		room = self.create(**kwargs)
 		return room
 
-	
+
 
 # Create your models here.
 class Room(models.Model):
@@ -39,6 +39,7 @@ class Room(models.Model):
 	game_data = {
 		host_id: int
 		game_state: str
+		
 		questions: [
 			{
 				question_id: int
