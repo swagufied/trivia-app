@@ -1,0 +1,1 @@
+A django application that will manage rooms and socket connections for web games. Is being designed to allow independent game developers utilize this app to quickly connect game logic with socket connections.
