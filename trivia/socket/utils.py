@@ -14,10 +14,14 @@ def get_room_or_error(room_id):
 		return None
 
 	try:
+		room_id = int(room_id)
+		print('getting room')
 		room = Room.objects.get(pk=room_id)
+		print('retreived room', room)
 	except Room.DoesNotExist:
 		raise ClientError("INVALID_ROOM")
-
+	except Exception as e:
+		print(e)
 	return room
 
 
@@ -28,6 +32,7 @@ def get_user_or_error(user_id):
 
 	try:
 		user = User.objects.get(pk=user_id)
+		print('user', user)
 	except User.DoesNotExist:
 		raise ClientError("INVALID_USER")
 
@@ -65,7 +70,7 @@ def get_args_from_incoming_msg(msg, user_id=None):
 	room_id = msg.get('room_id')
 	data = msg.get('data')
 	
-
+	print('preprocessed args', command,room_id,  data) 
 	if not command:
 		raise ClientError('MSG_COMMAND_MISSING')
 	elif not data:
@@ -85,14 +90,14 @@ def get_args_from_incoming_msg(msg, user_id=None):
 	else: 
 		room = get_room_or_error(room_id)
 		user = get_user_or_error(user_id)
-
+		print(room, user)
 		if not user:
 			raise ClientError('INVALID_USER_ID')
 
 		if not room:
 			raise ClientError('INVALID_ROOM_ID')
-
-		elif command == constants.JOIN_ROOM:
+		print('room and user confirmed')
+		if command == constants.JOIN_ROOM:
 			args = [room, user, data.get('password')]
 		elif command == constants.LEAVE_ROOM:
 			args = [room, user]
@@ -103,12 +108,13 @@ def get_args_from_incoming_msg(msg, user_id=None):
 			kwargs['msg'] = data.get('message')
 
 		elif command == constants.UPDATE_GAME:
-
+			print('update gmae')
 			args = [room, user, data]
 			
 		else:
+
 			raise ClientError('INVALID_COMMAND')
 	
-	print(command, args, kwargs)
+	print('processed args', command, args, kwargs)
 	return command, args, kwargs
 

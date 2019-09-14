@@ -86,6 +86,8 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			commands[command](*args, **kwargs)
 		except ClientError as e:
 			self.send_json({"error": e.code})
+		except Exception as e:
+			print(e)
 
 	def disconnect(self, close_code):
 		user = get_user_or_error(getattr(self, constants.DATA).get(constants.USER_ID))
@@ -98,6 +100,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 					self.leave_room(room, user)
 				except ClientError as e:
 					print('error in disconnecting', e)
+
 
 
 
@@ -206,6 +209,13 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		# make sure the room id provided is one the user is in
 		if not room.id in getattr(self, constants.ROOMS):
 			raise ClientError('NOT NOT_A_ROOM_MEMBER')
+
+		partial_group_send = partial(socket_group_send, self.channel_layer, 'game.update' )
+		partial_group_add = partial(socket_group_add, self.channel_layer, self.channel_name)
+		partial_self_send = partial(socket_self_send, self.send_json, constants.UPDATE_GAME)
+
+		game_update_payload(room.game_type, partial_group_add, partial_self_send, partial_group_send,  {'action': data['type'], 'user': user, 'room': room})
+
 
 
 
