@@ -1,10 +1,10 @@
 **Game Server (in development)**
 
-The goal of this project is to provide a framework that will allow anyone to easily program a small game without the hassle of managing socket, rooms, authentication, etc. Of course, this is just the server. The client is also being designed in a similar fashion and can be found [here](https://github.com/swagufied/trivia-app-client). A simple chat system is built in as well.
+The goal of this project is to provide a framework that will allow anyone to easily program a small game without the hassle of managing sockets, rooms, authentication, etc. Of course, this is just the server. The client is also being designed in a similar fashion and can be found [here](https://github.com/swagufied/trivia-app-client). A simple chat system is built in as well.
 
 **How to use this?**
 
-Currently, the project is not useable as it isn't finished and not fully tested. It will eventually be a Django application will require a User table for user authentication. Otherwise the application should stand on its own.
+Currently, the project is not useable as it isn't finished and not fully tested. It will eventually be a Django application that will require a User table for user authentication. Otherwise the application should stand on its own.
 
 **How can I insert a game?**
 
