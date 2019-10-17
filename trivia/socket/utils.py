@@ -75,7 +75,7 @@ def get_args_from_incoming_msg(msg, user_id=None):
 		raise ClientError('MSG_COMMAND_MISSING')
 	elif not data:
 
-		if command in [constants.LEAVE_ROOM]:
+		if command in [constants.LEAVE_ROOM, constants.JOIN_ROOM]:
 			pass
 		else:
 			raise ClientError('MSG_DATA_MISSING')

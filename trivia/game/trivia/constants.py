@@ -1,7 +1,7 @@
 class TriviaConstants:
 
 	UPDATE_PLAYERS = "UPDATE_PLAYERS"
-
+	UPDATE_TIMER = "UPDATE_TIMER"
 
 	# game states
 	START_GAME = "START_GAME"

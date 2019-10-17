@@ -70,6 +70,7 @@ def start_game_handler(socket_group_send, room, user):
 
 	# change room.is_playing to true
 	# gather questions
+	# initialize_new_game(room)
 	# tracker for which question we are on
 
 	payload = {
@@ -78,27 +79,59 @@ def start_game_handler(socket_group_send, room, user):
 	}
 
 
-
+	# tell everyone in the room that the game is starting
 	socket_group_send(room.group_name, payload)
 
+	# start the timer
+	next_run_time = datetime.datetime.now() + datetime.timedelta(seconds=3)
+	scheduler.add_job(timer, args=[socket_group_send, room, user, 5, 1, send_question], next_run_time=next_run_time)
 
 	next_run_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
 
 	scheduler.add_job(end_game_handler, args=[socket_group_send, room, user], next_run_time=next_run_time)
-	pass
 
-def send_question():
+"""
+The timer function for the game
+
+countdown is the current state of the timer
+interval is the interval in which the timer update message should be sent
+callback will be called once the countdown reaches 0
+"""
+def timer(socket_group_send, room, user, countdown, interval, callback):
+	print(countdown)
+
+	payload = {
+		'type': game_constants.UPDATE_TIMER,
+		'data': {
+			'timer': countdown
+		}
+	}
+
+	if countdown == 0:
+		callback(socket_group_send, room, user)
+	else:
+		socket_group_send(room.group_name, payload)
+		next_run_time = datetime.datetime.now() + datetime.timedelta(seconds=interval)
+		scheduler.add_job(timer, args=[socket_group_send, room, user, countdown-interval, interval], next_run_time=next_run_time)
+
+
+def send_question(socket_group_send, room, user):
 
 	# update which question the quiz is on
 
 	# send new question
-
 	payload = {
 		'type': game_constants.QUESTION_PHASE,
 		'question': question
 	}
 
 	socket_group_send(room.group_name, payload)
+
+
+	# start the timer
+	next_run_time = datetime.datetime.now() + datetime.timedelta(seconds=3)
+	scheduler.add_job(timer, args=[socket_group_send, room, user, 10, 1, send_answer], next_run_time=next_run_time)
+
 
 def send_answer():
 
