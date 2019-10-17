@@ -1,6 +1,7 @@
 /*
 !/.gitignore
 !/trivia/
+!/README.md
 
 __pycache__/
 *.py[cod]
