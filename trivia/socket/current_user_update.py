@@ -27,7 +27,7 @@ def join_room(is_successful):
 	}
 
 
-	print('join_room payload', data)
+	# print('join_room payload', data)
 	return data
 
 def leave_room(is_successful):

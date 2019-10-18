@@ -1,7 +1,7 @@
 def retrieve_questions():
 	
 
-	return [{
+	questions = [{
 			'question': '1+1',
 			'answer': '2'
 		},{
@@ -17,3 +17,5 @@ def retrieve_questions():
 			'question': '4+5',
 			'answer': '9'
 		}]
+
+	return questions[0:1]

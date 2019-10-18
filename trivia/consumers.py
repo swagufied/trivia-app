@@ -17,6 +17,9 @@ from .socket.utils import socket_group_send, get_user_or_error, get_room_or_erro
 from .socket.game_update import game_update_payload 
 
 """
+if 
+
+
 	all incoming messages must be in the following format
 	{
 		type: str
@@ -56,11 +59,11 @@ from .socket.game_update import game_update_payload
 	data = {
 		TODO
 	}
-	"""
+"""
 class TriviaConsumer(JsonWebsocketConsumer):
 
 	def connect(self):
-		print('connected')
+		print('connected', self.channel_layer, self.channel_name)
 		self.accept()
 
 		setattr(self, constants.ROOMS, set())
@@ -77,7 +80,7 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			constants.UPDATE_GAME: self.update_game
 		}
 
-		print('incoming_json', content)
+		# print('incoming_json', content)
 		
 
 		try:
@@ -96,10 +99,11 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 			for room_id in list(getattr(self, constants.ROOMS)):
 				room = get_room_or_error(room_id)
-				try:
-					self.leave_room(room, user)
-				except ClientError as e:
-					print('error in disconnecting', e)
+				if not room.is_playing:
+					try:
+						self.leave_room(room, user)
+					except ClientError as e:
+						print('error in disconnecting', e)
 
 
 
@@ -214,41 +218,23 @@ class TriviaConsumer(JsonWebsocketConsumer):
 		partial_group_add = partial(socket_group_add, self.channel_layer, self.channel_name)
 		partial_self_send = partial(socket_self_send, self.send_json, constants.UPDATE_GAME)
 
-		game_update_payload(room.game_type, partial_group_add, partial_self_send, partial_group_send,  {'action': data['type'], 'user': user, 'room': room})
+		game_update_payload(room.game_type, partial_group_add, partial_self_send, partial_group_send,  {'action': data['type'], 'user': user, 'room': room, 'data': data['data']})
 
 
 
-
-	"""
-
-		# args - (channel_layer, group_name, msg_type, msg_payload)
-		@shared_task
-		def celery_send(*args):
-			send(*args)
-
-		def send(channel_layer, group_name, msg_type, msg_payload):
-			async_to_sync(channel_layer.group_send)(
-				group_name,
-				{
-					'type': msg_type,
-					'payload': msg_payload
-				}
-			)
-
-	"""
 
 	"""
 	GROUP_SEND HANDLERS
 	"""
 	def room_join(self, event):
-		print(event)
+		# print(event)
 		self.send_json(event['payload'])
 
 	def room_leave(self, event):
 		self.send_json(event['payload'])
 
 	def message_send(self, event):
-		print('message sent', event)
+		# print('message sent', event)
 		self.send_json(event['payload'])
 
 	def game_update(self, event):

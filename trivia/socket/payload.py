@@ -99,7 +99,7 @@ def join_room_status(user, success: bool):
 			'username': user.username
 		}
 	}
-	print('join_room payload', data)
+	# print('join_room payload', data)
 	return construct_payload('JOIN_ROOM', data)
 
 
@@ -140,27 +140,3 @@ def leave_room(room, user):
 
 	return payload
 
-
-# startup -> question -> answer -> finish
-
-def game_update(consumer, user, room, data):
-
-	payload=None
-	if data['type'] == 'GAME_START':
-
-		# check that user has authority to start game
-		# if room.data['host_id'] != user.id:
-		# 	return construct_payload('INSUFFICIENT_AUTHORITY', '')
-
-		payload = StandardTrivia.update_state(room, 'STARTUP')
-		
-		a = test.apply_async(args=['s'], countdown=3)
-		print('a',a, a.get())
-
-
-	elif data['type'] == 'ANSWER_SUBMIT':
-		pass
-
-
-
-	return payload
