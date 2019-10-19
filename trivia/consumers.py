@@ -134,11 +134,10 @@ class TriviaConsumer(JsonWebsocketConsumer):
 	def join_room(self, room, user, password):
 
 		if not user:
-			return
+			raise ClientError('INVALID_USER')
 
-		if room.password:
-			if room.password != password:
-				raise ClientError('INCORRECT_PASSWORD')
+		if room.password and room.password != password:
+			raise ClientError('INCORRECT_PASSWORD')
 
 
 		# add user to room
@@ -154,6 +153,13 @@ class TriviaConsumer(JsonWebsocketConsumer):
 			room.group_name,
 			self.channel_name
 		)
+
+
+		"""
+		from here on should be customizable
+		"""
+		for handler in commands[constants.JOIN_ROOM]:
+			handler(helper, room, user)
 
 		# notify everyone that new member joined - send out new member list
 		socket_group_send(self.channel_layer, 'room.join',room.group_name, chat_update_payload(constants.JOIN_ROOM, user))
@@ -235,7 +241,11 @@ class TriviaConsumer(JsonWebsocketConsumer):
 
 	def message_send(self, event):
 		# print('message sent', event)
-		self.send_json(event['payload'])
+		# self.send_json(event['payload'])	
+		self.send_json({
+			'type': constants.UPDATE_CHAT,
+			'data': event['payload']
+			})
 
 	def game_update(self, event):
 		self.send_json({
