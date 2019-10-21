@@ -26,6 +26,9 @@ from .Trivia import Trivia
 
 	"""
 
+
+
+
 def trivia_payload_handler(socket_group_add, socket_self_send, socket_group_send, payload):
 
 	if payload['action'] == constants.JOIN_ROOM:
@@ -40,16 +43,6 @@ def trivia_payload_handler(socket_group_add, socket_self_send, socket_group_send
 
 	pass
 
-def join_room_handler(socket_group_send, room, user):
-
-	payload = {
-		'type': game_constants.UPDATE_PLAYERS,
-		'data':{
-			'players': get_players_info(room, user),
-			}
-	}
-
-	socket_group_send(room.group_name, payload)
 
 
 def get_players_info(room, user):

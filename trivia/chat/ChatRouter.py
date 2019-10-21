@@ -1,15 +1,10 @@
-class ChatRouter(ApplicationRouter):
+from trivia.socket.BaseRouter import BaseRouter
+from .constants import UPDATE_CHAT
+import datetime
 
-	def __init__(self):
+class ChatRouter(BaseRouter):
 
-		# map commands to functions
-		setattr(self, constants.JOIN_ROOM, self.join_room)
-		setattr(self, constants.LEAVE_ROOM, self.leave_room)
-		setattr(self, constants.UPDATE_CHAT, self.update_chat)
-
-		super().__init__()
-
-	def join_room(self, room, user):
+	def join_room(self, room, user, helper):
 
 		payload = {
 			'username': None,
@@ -17,10 +12,9 @@ class ChatRouter(ApplicationRouter):
 			'date': datetime.datetime.now().isoformat()
 		}
 		
+		helper.group_send(room.group_name, 'message.send', payload)
 
-		group_send(room.group_name, 'message.send', payload)
-
-	def leave_room(self, room, user):
+	def leave_room(self, room, user, helper):
 
 		payload = {
 			'username': None,
@@ -29,20 +23,28 @@ class ChatRouter(ApplicationRouter):
 		}
 		
 
-		group_send(room.group_name, 'message.send', payload)
+		helper.group_send(room.group_name, 'message.send', payload)
 
-	def update_chat(self, room, user, message):
+	def update_chat(self, room, user, helper, data):
 
 		# don't bother processing messages that are empty
-		if not message:
+		if not data['message']:
 			return
 
 		payload = {
 			'username': user.username,
-			'message': message,
+			'message': data['message'],
 			'date': datetime.datetime.now().isoformat()
 		}
 		
 
-		group_send('message.send',  room.group_name, payload)
+		helper.group_send(room.group_name, 'message.send', payload)
 
+
+	def get_routes(self):
+
+		routes = {
+			UPDATE_CHAT: self.update_chat
+		}
+
+		return super().get_routes(routes=routes)

@@ -1,29 +1,83 @@
-**Game Server (in development)**
 
-The goal of this project is to provide a framework that will allow anyone to easily program a small game without the hassle of managing socket, rooms, authentication, etc. Of course, this is just the server. The client is also being designed in a similar fashion and can be found [here](https://github.com/swagufied/trivia-app-client). A simple chat system is built in as well.
+How to set up your game.
 
-**How to use this?**
-Currently, the project is not useable as it isn't finished and not fully tested. It will eventually be a Django application will require a User table for user authentication. Otherwise the application should stand on its own.
+Django channels is used to manage the socket connections. A base consumer is provided to authenticate the server connection and handle connects, disconnects, joining rooms, and leaving rooms. 
 
-**How can I insert a game?**
-Each game will need a function that can receive the incoming socket and socket send functions. An example can be seen below.
+{
+	'type':
+	'room_id':
+	'data':
+}
+
+
+- VALIDATE_CONNECTION - 
+- JOIN_ROOM - will add the user to the specified room and to the room's socket group. A message will be pinged back indicating if join was successful or not. The password data can be omitted if there is no password required.
+	- input: 
+	```
+	{
+		'type': JOIN_ROOM,
+		'room_id': int,
+		'data': {
+			'password': str
+		}
+	}
+	```
+	- output:
+	```
+	{
+		'type': JOIN_ROOM,
+		'data': {
+			'is_successful': bool
+		}
+	}
+	```
+
+- LEAVE_ROOM - will remove the user from the specific room indicated
+
+- disconnect - will remove the user from all rooms that are not currently in-game
+
+
+To add additional components to the base consumer, you must create routing classes. These classes will be used to handle any messages that have a type that is not specified by the 3 above.
+
+Each of those functions will receive 3 arguments: the room row, user row, helper object, and the data. The room and user are simply the objects you get when you query them. The helper object has functions that allow you to choose how to send messages (see below). The data is the data. 
+
 ```
-def payload_handler(group_add, socket_self_send, socket_group_send, payload):
-  pass
+class ChatRouter(BaseRouter):
+
+	def receive_message(room, user, helper, data):
+		pass
 ```
-- group_add would be a way to add users to a designated group which can be used to create teams.
-- socket_self_send would be a way to send socket messages to the user from which the socket message originated
-- socket_group_send would be a way to send socket messages to designated groups that were created by group_add
-- payload would be the data itself
+In the router above, when a message is sent with type "receive_message", the base router will route the message to ChatConsumer.receive_message function.
 
-**Some Notes**
-- All timed events are currently planned to be managed by [apscheduler](https://apscheduler.readthedocs.io/en/latest/).
-- Each game currently receives one row in the database. The data would be stored as a JSON object. This means that currently, the server cannot handle games that require large amounts of data.
+To customize the type input that determines which function processes the message, you can add another function as follows.
 
-**When will it be finished?**
-This project is running concurrently with the main project for which this framework was designed. Features will be added as they are tested in the main project.
+```
+class ChatRouter(BaseRouter):
 
-**Future planned improvements**
-- Configure how data is stored to allot a greater amount of data space per game.
-- Experiment with methods to handle more rapid transmissions of data, possibly by converting messages into binary representations.
-- Allow chat integrations into the games themselves so that they can be customized based on the game (e.g. team messages)
+	def receive_message():
+		pass
+
+	def get_routes(self):
+		routes = {
+			'RCV_MSG': self.receive_message
+		}
+		super().get_routes(routes)
+```
+The get_routes function tells the consumer to route any messages with type "RCV_MSG" to be processed by the "receive_message" function. Do not forget to add super().get_routes(arg) at the end of the function.
+
+
+The second (and last) part that integrates your game with the server is a consumer to specify how to package the message that will be emitted. Messages are processed exactly the same way as outlined in the Django channels documentations.
+
+Once you have these components setup, just put all the routers in a list called routers in the base directory of the app
+
+app/__init__.py
+```
+routers = [ChatRouter, GameRouter]
+```
+
+The helper object has 4 functions that enable you to add/remove users from socket groups and send messages.
+
+- self_send
+- group_send
+- group_add
+- group_remove
