@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class TriviaConfig(AppConfig):
-    name = 'trivia'
+class GameServerConfig(AppConfig):
+    name = 'game_server'

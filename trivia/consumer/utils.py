@@ -1,4 +1,4 @@
-from ..models import Room, SocketTicket
+from game_server.models import Room, SocketTicket
 from .exceptions import ClientError
 from django.contrib.auth.models import User
 
@@ -34,7 +34,7 @@ def get_user_from_socket_ticket(ticket):
 
 	if not ticket:
 		return None
-
+		
 	ticket_row = SocketTicket.objects.filter(pk=ticket).first()
 
 	# make sure ticket time is still valid

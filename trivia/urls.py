@@ -1,13 +1,14 @@
-# chat/urls.py
+from rest_framework import routers
 from django.conf.urls import url
-from django.urls import path
+from django.urls import include
 
-from . import views
+from game_server.views import RoomView, validate_password, SocketTicketView
+
+
 
 urlpatterns = [
-	# url(r'^room', views.RoomView.as_view(), name='lobby'),
-	path('verify-room-password', views.validate_room_password, name="room_password_verify"),
-    url(r'^room/(?P<room_id>[^/]+)/$', views.RoomView.as_view(), name='room'),
-    path('token-verify/', views.TokenView.as_view(), name='token_verify'), # get rid of
-    path('socket-ticket', views.SocketTicketView.as_view(), name='socket-ticket')
+	url(r'^socket-ticket/$', SocketTicketView.as_view(), name='socket-ticket'),
+	url(r'^room/(?P<room_id>[^/]+)/$', RoomView.as_view(), name='room'),
+	url(r'^room/(?P<room_id>[^/]+)/validate-password', validate_password, name='validate-password'),
 ]
+

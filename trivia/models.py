@@ -5,7 +5,6 @@ from django.conf import settings
 import uuid
 
 
-
 class RoomManager(models.Manager):
 	def create_room(self, **kwargs):
 
@@ -20,17 +19,12 @@ class Room(models.Model):
 
 	objects = RoomManager()
 
-	TRIVIA = 'TR'
-	# TODO: JEOPARDY = 'JE'
 
-	GAME_TYPE_CHOICES = [
-		(TRIVIA, 'TRIVIA')
-		# TODO: (JEOPARDY, 'JEOPARDY')
-	]
+	GAME_TYPE_CHOICES = []
 
 	name = models.CharField(max_length = 30, default="All Welcome")
 	password = models.CharField(max_length = 30, default="")
-	game_type = models.CharField(max_length=2, choices=GAME_TYPE_CHOICES, default=TRIVIA)
+	game_type = models.CharField(max_length=2, choices=GAME_TYPE_CHOICES, default="")
 	is_playing = models.BooleanField(default=False)
 	host = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="owned_rooms", null=True, on_delete=models.SET_NULL)
 
@@ -68,6 +62,10 @@ class Room(models.Model):
 		return "room-{}".format(self.id)
 
 
+	def add_game_type_choice(self, readable_value, field_value):
+		game_type = (readable_value, field_value)
+		if game_type not in self.GAME_TYPE_CHOICES:
+			self.GAME_TYPE_CHOICES.append(game_type)
 
 
 
@@ -75,7 +73,14 @@ class SocketTicketManager(models.Manager):
 
 	def create_ticket(self, user):
 		ticket = self.create(user=user)
+
+
 		return ticket
+
+	def invalidate_ticket(self, ticket):
+		ticket_row = self.filter(pk=ticket)
+		if ticket_row:
+			ticket_row.delete()
 
 class SocketTicket(models.Model):
 

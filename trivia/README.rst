@@ -81,3 +81,75 @@ The helper object has 4 functions that enable you to add/remove users from socke
 - group_send
 - group_add
 - group_remove
+
+
+
+apscheduler
+
+
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+# from rest_framework import routers
+# from trivia import views
+
+# router = routers.DefaultRouter()
+# router.register(r'users', views.UserViewSet)
+# router.register(r'rooms', views.RoomViewSet)
+
+
+
+
+urls.py
+urlpatterns = [
+    path('game-server/', include('game-server.urls')),
+
+
+    url(r'^api/token/$', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    url(r'^api/token/refresh/$', TokenRefreshView.as_view(), name='token_refresh'),
+
+]
+
+
+https://pypi.org/project/djangorestframework-simplejwt/1.2/
+
+INSTALLED_APPS = [
+    
+    # game-server dependencies
+    'corsheaders',
+    'rest_framework',
+    'channels',
+
+    # apps
+    'game-server'
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+
+
+database must support json
+
+ASGI_APPLICATION = 'game-server.routing.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+        # 'ROUTING': 'life.routing.channel_routing',
+    },
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+
+}
+
+CORS_ORIGIN_ALLOW_ALL = True
